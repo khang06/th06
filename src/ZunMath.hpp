@@ -361,6 +361,8 @@ struct ZunMatrix
 };
 static_assert(sizeof(ZunMatrix) == 0x40, "ZunMatrix has additional padding between struct members!");
 
+struct GfxInterface;
+
 // A viewport using D3D conventions (x, y is the top left corner of the viewport)
 struct ZunViewport
 {
@@ -371,14 +373,7 @@ struct ZunViewport
     f32 minZ;
     f32 maxZ;
 
-    void Set()
-    {
-        g_glFuncTable.glViewport(this->x * WIDTH_RESOLUTION_SCALE + VIEWPORT_OFF_X,
-                                 (GAME_WINDOW_HEIGHT_REAL - ((this->y + this->height) * HEIGHT_RESOLUTION_SCALE)) -
-                                     VIEWPORT_OFF_Y,
-                                 this->width * WIDTH_RESOLUTION_SCALE, this->height * HEIGHT_RESOLUTION_SCALE);
-        g_glFuncTable.glDepthRangef(this->minZ, this->maxZ);
-    }
+    void Set();
 
     void Get()
     {

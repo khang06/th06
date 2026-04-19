@@ -5,6 +5,8 @@
 #include "inttypes.hpp"
 #include <cstddef>
 
+struct ZunMatrix;
+
 enum DepthFunc
 {
     DEPTH_FUNC_LEQUAL,
@@ -55,5 +57,6 @@ struct GfxInterface
     virtual void SetColorOp(TextureOpComponent component, ColorOp op) = 0;
     virtual void SetTextureFactor(ZunColor factor) = 0;
     virtual void SetTransformMatrix(TransformMatrix type, ZunMatrix &matrix) = 0;
+    virtual void SetInvViewport(f32 invWidth, f32 invHeight) = 0;
     virtual void Draw() = 0;
 };

@@ -8,6 +8,7 @@ enum GlShaderUniform
     UNIFORM_MODELVIEW,
     UNIFORM_PROJECTION,
     UNIFORM_TEXTURE_MATRIX,
+    UNIFORM_INV_VIEWPORT,
     UNIFORM_ENV_DIFFUSE,
     UNIFORM_TEX_COORD_FLAG,
     UNIFORM_DIFFUSE_FLAG,
@@ -33,6 +34,7 @@ struct WebGL : GfxInterface
     virtual void SetColorOp(TextureOpComponent component, ColorOp op);
     virtual void SetTextureFactor(ZunColor factor);
     virtual void SetTransformMatrix(TransformMatrix type, ZunMatrix &matrix);
+    virtual void SetInvViewport(f32 invWidth, f32 invHeight);
     virtual void Draw();
 
   private:

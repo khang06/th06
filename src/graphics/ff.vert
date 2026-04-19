@@ -7,6 +7,7 @@ attribute vec4 diffuse;
 uniform mat4 modelviewMatrix;
 uniform mat4 projectionMatrix;
 uniform mat4 textureMatrix;
+uniform vec2 invViewport;
 
 varying vec2 interpTexCoords;
 varying vec4 interpDiffuse;
@@ -19,5 +20,7 @@ void main() {
     vec4 viewCoordinates = modelviewMatrix * vec4(position, 1.0);
     viewZ = viewCoordinates.z;
 
-    gl_Position = projectionMatrix * viewCoordinates;
+    vec4 finalPos = projectionMatrix * viewCoordinates;
+    finalPos.xy += vec2(invViewport.x, -invViewport.y) * finalPos.w;
+    gl_Position = finalPos;
 }

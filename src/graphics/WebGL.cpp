@@ -35,7 +35,7 @@ GLuint createShader(const char *source, GLenum type, const char *descString,
         goto fail;
     }
 
-    fullShaderSource[0] = "#version 100\n";
+    fullShaderSource[0] = "#version 130\n";
 
     if (SDL_GL_ExtensionSupported("GL_EXT_frag_depth"))
     {
@@ -123,9 +123,9 @@ bool linkProgram(GLuint programHandle)
 
 void WebGL::SetContextFlags()
 {
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    //SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 }
 
 GfxInterface *WebGL::Create()
@@ -178,6 +178,7 @@ bool WebGL::Init()
     this->uniforms[UNIFORM_MODELVIEW] = g_glFuncTable.glGetUniformLocation(programHandle, "modelviewMatrix");
     this->uniforms[UNIFORM_PROJECTION] = g_glFuncTable.glGetUniformLocation(programHandle, "projectionMatrix");
     this->uniforms[UNIFORM_TEXTURE_MATRIX] = g_glFuncTable.glGetUniformLocation(programHandle, "textureMatrix");
+    this->uniforms[UNIFORM_INV_VIEWPORT] = g_glFuncTable.glGetUniformLocation(programHandle, "invViewport");
 
     this->uniforms[UNIFORM_ENV_DIFFUSE] = g_glFuncTable.glGetUniformLocation(programHandle, "envDiffuse");
     this->uniforms[UNIFORM_TEX_COORD_FLAG] = g_glFuncTable.glGetUniformLocation(programHandle, "useTexCoords");
@@ -203,6 +204,7 @@ bool WebGL::Init()
     g_glFuncTable.glUniformMatrix4fv(this->uniforms[UNIFORM_MODELVIEW], 1, false, (GLfloat *)&identityMatrix.m);
     g_glFuncTable.glUniformMatrix4fv(this->uniforms[UNIFORM_PROJECTION], 1, false, (GLfloat *)&identityMatrix.m);
     g_glFuncTable.glUniformMatrix4fv(this->uniforms[UNIFORM_TEXTURE_MATRIX], 1, false, (GLfloat *)&identityMatrix.m);
+    g_glFuncTable.glUniform2f(this->uniforms[UNIFORM_INV_VIEWPORT], 1.0f / GAME_WINDOW_WIDTH, 1.0f / GAME_WINDOW_HEIGHT);
 
     g_glFuncTable.glUniform1f(this->uniforms[UNIFORM_FOG_FAR], 1.0f);
 
@@ -300,6 +302,11 @@ void WebGL::SetTransformMatrix(TransformMatrix type, ZunMatrix &matrix)
     u32 matrixUniformEnum[4] = {UNIFORM_MODELVIEW, UNIFORM_MODELVIEW, UNIFORM_PROJECTION, UNIFORM_TEXTURE_MATRIX};
 
     g_glFuncTable.glUniformMatrix4fv(this->uniforms[matrixUniformEnum[type]], 1, false, (GLfloat *)&matrix.m);
+}
+
+void WebGL::SetInvViewport(f32 invWidth, f32 invHeight)
+{
+    g_glFuncTable.glUniform2f(this->uniforms[UNIFORM_INV_VIEWPORT], invWidth, invHeight);
 }
 
 void WebGL::Draw()

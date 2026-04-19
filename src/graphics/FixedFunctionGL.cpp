@@ -173,6 +173,10 @@ void FixedFunctionGL::SetTransformMatrix(TransformMatrix type, ZunMatrix &matrix
     g_glFuncTable.glLoadMatrixf((GLfloat *)&matrix);
 }
 
+void FixedFunctionGL::SetInvViewport(f32 invWidth, f32 invHeight)
+{
+}
+
 void FixedFunctionGL::Draw()
 {
 }

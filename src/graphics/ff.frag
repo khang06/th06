@@ -27,7 +27,8 @@ void main()
 
     if (useTexCoords)
     {
-        fragArg1 = texture2D(tex, interpTexCoords);
+        vec2 coordOffset = 0.5 / vec2(textureSize(tex, 0));
+        fragArg1 = texture2D(tex, interpTexCoords - coordOffset);
     }
     else
     {

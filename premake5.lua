@@ -67,6 +67,7 @@ project "th06"
     "src/Supervisor.cpp",
     "src/TextHelper.cpp",
     "src/utils.cpp",
+    "src/ZunMath.cpp",
     "src/ZunTimer.cpp",
     "src/graphics/FixedFunctionGL.cpp",
     "src/graphics/WebGL.cpp",

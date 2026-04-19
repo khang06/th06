@@ -27,7 +27,7 @@ static struct
     bool isEsContext;
     void (*setContextFlags)();
     GfxInterface *(*init)();
-} s_RenderBackends[] = {{"GL(ES) 2.0 / WebGL", true, WebGL::SetContextFlags, WebGL::Create},
+} s_RenderBackends[] = {{"GL(ES) 2.0 / WebGL", false, WebGL::SetContextFlags, WebGL::Create},
                         {"Fixed function GL(ES)", false, FixedFunctionGL::SetContextFlags, FixedFunctionGL::Init}};
 
 RenderResult GameWindow::Render()
@@ -381,6 +381,7 @@ i32 GameWindow::InitD3dRendering(void)
     g_Supervisor.vsyncEnabled = 1;
 
     g_Supervisor.lockableBackbuffer = 1;
+    g_Supervisor.hasD3dHardwareVertexProcessing = 1;
     //    memcpy(&g_Supervisor.presentParameters, &present_params, sizeof(D3DPRESENT_PARAMETERS));
     //    for (;;)
     //    {

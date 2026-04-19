@@ -82,6 +82,7 @@ void GLFuncTable::ResolveFunctions(bool glesContext)
     TRY_RESOLVE_FUNCTION(glUniform1i)
     TRY_RESOLVE_FUNCTION(glUniform4f)
     TRY_RESOLVE_FUNCTION(glUniformMatrix4fv)
+    TRY_RESOLVE_FUNCTION(glUniform2f)
     TRY_RESOLVE_FUNCTION(glUseProgram)
     TRY_RESOLVE_FUNCTION(glVertexAttribPointer)
 
