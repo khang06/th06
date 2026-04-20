@@ -41,7 +41,7 @@ struct EnemyManager
     i8 unk_ee5c0[4];
     RunningSpellcardInfo spellcardInfo;
     i32 unk_ee5d8;
-    EclTimelineInstr *timelineInstr;
+    u8 *timelineInstr;
     ZunTimer timelineTime;
 };
 

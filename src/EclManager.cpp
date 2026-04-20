@@ -71,7 +71,7 @@ void EclManager::Unload()
 
 ZunResult EclManager::CallEclSub(EnemyEclContext *ctx, i16 subId)
 {
-    ctx->currentInstr = this->subTable[subId];
+    ctx->currentInstr = (u8*)this->subTable[subId];
     ctx->time.InitializeForPopup();
     ctx->subId = subId;
     return ZUN_SUCCESS;
@@ -79,7 +79,9 @@ ZunResult EclManager::CallEclSub(EnemyEclContext *ctx, i16 subId)
 
 ZunResult EclManager::RunEcl(Enemy *enemy)
 {
-    EclRawInstr *instruction;
+    EclRawInstr instructionTemp = {};
+    EclRawInstr *instruction = &instructionTemp;
+    u8 *instructionRaw;
     EclRawInstrArgs *args;
     ZunVec3 local_8;
     i32 local_14, local_24, local_28, local_2c, *local_3c, *local_40, local_44, local_48, local_68, local_74, csum,
@@ -98,13 +100,14 @@ ZunResult EclManager::RunEcl(Enemy *enemy)
 
     for (;;)
     {
-        instruction = enemy->currentContext.currentInstr;
+        instructionRaw = enemy->currentContext.currentInstr;
         if (0 <= enemy->runInterrupt)
         {
             goto HANDLE_INTERRUPT;
         }
 
     YOLO:
+        memcpy(&instructionTemp, instructionRaw, sizeof(EclRawInstr));
         if (enemy->currentContext.time.current == instruction->time)
         {
             if (!(instruction->skipForDifficulty & (1 << g_GameManager.difficulty)))
@@ -126,7 +129,7 @@ ZunResult EclManager::RunEcl(Enemy *enemy)
             case ECL_OPCODE_JUMP:
             HANDLE_JUMP:
                 enemy->currentContext.time.current = instruction->args.jump.time;
-                instruction = (EclRawInstr *)(((u8 *)instruction) + args->jump.offset);
+                instructionRaw += args->jump.offset;
                 goto YOLO;
             case ECL_OPCODE_SETINT:
             case ECL_OPCODE_SETFLOAT:
@@ -239,7 +242,7 @@ ZunResult EclManager::RunEcl(Enemy *enemy)
             case ECL_OPCODE_CALL:
             HANDLE_CALL:
                 local_14 = instruction->args.call.eclSub;
-                enemy->currentContext.currentInstr = (EclRawInstr *)((u8 *)instruction + instruction->offsetToNext);
+                enemy->currentContext.currentInstr = instructionRaw + instruction->offsetToNext;
                 if (enemy->flags.unk14 == 0)
                 {
                     memcpy(&enemy->savedContextStack[enemy->stackDepth], &enemy->currentContext,
@@ -681,7 +684,7 @@ ZunResult EclManager::RunEcl(Enemy *enemy)
             case ECL_OPCODE_ENEMYINTERRUPT:
                 enemy->runInterrupt = instruction->args.setInt;
             HANDLE_INTERRUPT:
-                enemy->currentContext.currentInstr = (EclRawInstr *)((u8 *)instruction + instruction->offsetToNext);
+                enemy->currentContext.currentInstr = instructionRaw + instruction->offsetToNext;
                 if (enemy->flags.unk14 == 0)
                 {
                     memcpy(&enemy->savedContextStack[enemy->stackDepth], &enemy->currentContext,
@@ -915,7 +918,7 @@ ZunResult EclManager::RunEcl(Enemy *enemy)
                 break;
             }
         NEXT_INSN:
-            instruction = (EclRawInstr *)((u8 *)instruction + instruction->offsetToNext);
+            instructionRaw += instruction->offsetToNext;
             goto YOLO;
         }
         else
@@ -1026,7 +1029,7 @@ ZunResult EclManager::RunEcl(Enemy *enemy)
                     enemy->currentContext.funcSetFunc(enemy, NULL);
                 }
             }
-            enemy->currentContext.currentInstr = instruction;
+            enemy->currentContext.currentInstr = instructionRaw;
             enemy->currentContext.time.Tick();
             return ZUN_SUCCESS;
         }

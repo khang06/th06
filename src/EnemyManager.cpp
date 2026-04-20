@@ -147,10 +147,11 @@ void EnemyManager::RunEclTimeline()
     EclTimelineInstrArgs *args1;
     i32 subrankIncreaseFrame;
     Enemy *spawnedEnemy;
+    EclTimelineInstr timelineInstr;
 
     if (this->timelineInstr == NULL)
     {
-        this->timelineInstr = g_EclManager.timeline;
+        this->timelineInstr = (u8*)g_EclManager.timeline;
     }
     if (g_Gui.HasCurrentMsgIdx() == 0)
     {
@@ -164,32 +165,34 @@ void EnemyManager::RunEclTimeline()
             g_GameManager.IncreaseSubrank(100);
         }
     }
-    while (0 <= this->timelineInstr->time)
+
+    memcpy(&timelineInstr, this->timelineInstr, sizeof(EclTimelineInstr));
+    while (0 <= timelineInstr.time)
     {
-        if (this->timelineTime.current == this->timelineInstr->time)
+        if (this->timelineTime.current == timelineInstr.time)
         {
-            switch (this->timelineInstr->opCode)
+            switch (timelineInstr.opCode)
             {
             case 0:
                 if (!g_Gui.BossPresent())
                 {
-                    args1 = &this->timelineInstr->args;
-                    this->SpawnEnemy(this->timelineInstr->arg0, args1->Var1AsVec(), args1->ushortVar1,
+                    args1 = &timelineInstr.args;
+                    this->SpawnEnemy(timelineInstr.arg0, args1->Var1AsVec(), args1->ushortVar1,
                                      args1->ushortVar2, args1->uintVar4);
                 }
                 break;
             case 1:
                 if (!g_Gui.BossPresent())
                 {
-                    this->SpawnEnemy(this->timelineInstr->arg0, this->timelineInstr->args.Var1AsVec(), -1, ITEM_NO_ITEM,
+                    this->SpawnEnemy(timelineInstr.arg0, timelineInstr.args.Var1AsVec(), -1, ITEM_NO_ITEM,
                                      -1);
                 }
                 break;
             case 2:
                 if (!g_Gui.BossPresent())
                 {
-                    args2 = &this->timelineInstr->args;
-                    spawnedEnemy = this->SpawnEnemy(this->timelineInstr->arg0, args2->Var1AsVec(), args2->ushortVar1,
+                    args2 = &timelineInstr.args;
+                    spawnedEnemy = this->SpawnEnemy(timelineInstr.arg0, args2->Var1AsVec(), args2->ushortVar1,
                                                     args2->ushortVar2, args2->uintVar4);
                     spawnedEnemy->flags.unk4 = 1;
                 }
@@ -197,7 +200,7 @@ void EnemyManager::RunEclTimeline()
             case 3:
                 if (!g_Gui.BossPresent())
                 {
-                    spawnedEnemy = this->SpawnEnemy(this->timelineInstr->arg0, this->timelineInstr->args.Var1AsVec(),
+                    spawnedEnemy = this->SpawnEnemy(timelineInstr.arg0, timelineInstr.args.Var1AsVec(),
                                                     -1, ITEM_NO_ITEM, -1);
                     spawnedEnemy->flags.unk4 = 1;
                 }
@@ -205,7 +208,7 @@ void EnemyManager::RunEclTimeline()
             case 4:
                 if (!g_Gui.BossPresent())
                 {
-                    args3 = &this->timelineInstr->args;
+                    args3 = &timelineInstr.args;
                     pos1 = *args3->Var1AsVec();
                     if (args3->Var1AsVec()->x <= -990.0f)
                     {
@@ -219,14 +222,14 @@ void EnemyManager::RunEclTimeline()
                     {
                         pos1.z = g_Rng.GetRandomF32InRange(800.0f);
                     }
-                    this->SpawnEnemy(this->timelineInstr->arg0, &pos1, args3->ushortVar1, args3->ushortVar2,
+                    this->SpawnEnemy(timelineInstr.arg0, &pos1, args3->ushortVar1, args3->ushortVar2,
                                      args3->uintVar4);
                 }
                 break;
             case 5:
                 if (!g_Gui.BossPresent())
                 {
-                    pos2 = *this->timelineInstr->args.Var1AsVec();
+                    pos2 = *timelineInstr.args.Var1AsVec();
                     if (pos2.x <= -990.0f)
                     {
                         pos2.x = g_Rng.GetRandomF32InRange(g_GameManager.playerMovementAreaSize.x);
@@ -239,13 +242,13 @@ void EnemyManager::RunEclTimeline()
                     {
                         pos2.z = g_Rng.GetRandomF32InRange(800.0f);
                     }
-                    this->SpawnEnemy(this->timelineInstr->arg0, &pos2, -1, ITEM_NO_ITEM, -1);
+                    this->SpawnEnemy(timelineInstr.arg0, &pos2, -1, ITEM_NO_ITEM, -1);
                 }
                 break;
             case 6:
                 if (!g_Gui.BossPresent())
                 {
-                    args4 = &this->timelineInstr->args;
+                    args4 = &timelineInstr.args;
                     pos3 = *args4->Var1AsVec();
                     if (args4->Var1AsVec()->x <= -990.0f)
                     {
@@ -259,7 +262,7 @@ void EnemyManager::RunEclTimeline()
                     {
                         pos3.z = g_Rng.GetRandomF32InRange(800.0f);
                     }
-                    spawnedEnemy = this->SpawnEnemy(this->timelineInstr->arg0, &pos3, args4->ushortVar1,
+                    spawnedEnemy = this->SpawnEnemy(timelineInstr.arg0, &pos3, args4->ushortVar1,
                                                     args4->ushortVar2, args4->uintVar4);
                     spawnedEnemy->flags.unk4 = 1;
                 }
@@ -267,7 +270,7 @@ void EnemyManager::RunEclTimeline()
             case 7:
                 if (!g_Gui.BossPresent())
                 {
-                    pos4 = *this->timelineInstr->args.Var1AsVec();
+                    pos4 = *timelineInstr.args.Var1AsVec();
                     if (pos4.x <= -990.0f)
                     {
                         pos4.x = g_Rng.GetRandomF32InRange(g_GameManager.playerMovementAreaSize.x);
@@ -280,19 +283,19 @@ void EnemyManager::RunEclTimeline()
                     {
                         pos4.z = g_Rng.GetRandomF32InRange(800.0f);
                     }
-                    spawnedEnemy = this->SpawnEnemy(this->timelineInstr->arg0, &pos4, -1, ITEM_NO_ITEM, -1);
+                    spawnedEnemy = this->SpawnEnemy(timelineInstr.arg0, &pos4, -1, ITEM_NO_ITEM, -1);
                     spawnedEnemy->flags.unk4 = 1;
                 }
                 break;
             case 8:
                 if (g_GameManager.difficulty == EASY && g_GameManager.currentStage == 5 &&
-                    this->timelineInstr->arg0 == 1)
+                    timelineInstr.arg0 == 1)
                 {
                     g_Gui.MsgRead(g_GameManager.character * 10 + 3);
                 }
                 else
                 {
-                    g_Gui.MsgRead(this->timelineInstr->arg0 + g_GameManager.character * 10);
+                    g_Gui.MsgRead(timelineInstr.arg0 + g_GameManager.character * 10);
                 }
                 break;
             case 9:
@@ -303,26 +306,27 @@ void EnemyManager::RunEclTimeline()
                 }
                 break;
             case 10:
-                this->bosses[this->timelineInstr->args.uintVar1]->runInterrupt = this->timelineInstr->args.uintVar2;
+                this->bosses[timelineInstr.args.uintVar1]->runInterrupt = timelineInstr.args.uintVar2;
                 break;
             case 0xb:
-                g_GameManager.currentPower = this->timelineInstr->arg0;
+                g_GameManager.currentPower = timelineInstr.arg0;
                 break;
             case 0xc:
-                if (this->bosses[this->timelineInstr->arg0] != NULL &&
-                    this->bosses[this->timelineInstr->arg0]->flags.active)
+                if (this->bosses[timelineInstr.arg0] != NULL &&
+                    this->bosses[timelineInstr.arg0]->flags.active)
                 {
                     this->timelineTime.Decrement(1);
                     return;
                 }
             }
         }
-        else if (this->timelineTime.current < this->timelineInstr->time)
+        else if (this->timelineTime.current < timelineInstr.time)
         {
             break;
         }
 
-        this->timelineInstr = (EclTimelineInstr *)(((u8 *)this->timelineInstr) + this->timelineInstr->size);
+        this->timelineInstr += timelineInstr.size;
+        memcpy(&timelineInstr, this->timelineInstr, sizeof(EclTimelineInstr));
     }
     if (!g_Gui.HasCurrentMsgIdx())
     {

@@ -71,7 +71,7 @@ struct EnemyLaserShooter
 
 struct EnemyEclContext
 {
-    EclRawInstr *currentInstr;
+    u8 *currentInstr;
     ZunTimer time;
     void (*funcSetFunc)(Enemy *, EclRawInstr *);
     i32 var0;
