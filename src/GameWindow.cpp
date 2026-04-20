@@ -46,6 +46,7 @@ RenderResult GameWindow::Render()
     if (this->curFrame == 0)
     {
     RUN_CHAINS:
+#ifndef REPLAY_VALIDATOR
         if (g_Supervisor.cfg.frameskipConfig <= this->curFrame)
         {
             if (g_Supervisor.RedrawWholeFrame())
@@ -68,6 +69,7 @@ RenderResult GameWindow::Render()
             g_Chain.RunDrawChain();
             g_AnmManager->SetCurrentTexture(0);
         }
+#endif
 
         g_Supervisor.viewport.x = 0;
         g_Supervisor.viewport.y = 0;
@@ -89,6 +91,11 @@ RenderResult GameWindow::Render()
         this->curFrame++;
     }
 
+#ifdef REPLAY_VALIDATOR
+    //Present();
+    this->curFrame = 0;
+    g_Supervisor.effectiveFramerateMultiplier = 1.0f;
+#else
     if (g_Supervisor.cfg.windowed || g_Supervisor.ShouldRunAt60Fps())
     {
         if (this->curFrame != 0)
@@ -160,6 +167,7 @@ RenderResult GameWindow::Render()
         this->curFrame = 0;
         g_TickCountToEffectiveFramerate = g_TickCountToEffectiveFramerate + 1;
     }
+#endif
     return RENDER_RESULT_KEEP_RUNNING;
 }
 
@@ -377,8 +385,13 @@ i32 GameWindow::InitD3dRendering(void)
     //    present_params.AutoDepthStencilFormat = D3DFMT_D16;
     //    present_params.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 
+#ifdef REPLAY_VALIDATOR
+    SDL_GL_SetSwapInterval(0);
+    g_Supervisor.vsyncEnabled = 0;
+#else
     SDL_GL_SetSwapInterval(1);
     g_Supervisor.vsyncEnabled = 1;
+#endif
 
     g_Supervisor.lockableBackbuffer = 1;
     //    memcpy(&g_Supervisor.presentParameters, &present_params, sizeof(D3DPRESENT_PARAMETERS));

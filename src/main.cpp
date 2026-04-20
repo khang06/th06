@@ -14,6 +14,10 @@
 #include "i18n.hpp"
 #include "utils.hpp"
 
+#ifdef REPLAY_VALIDATOR
+#include "ReplayValidator.hpp"
+#endif
+
 int main(int argc, char *argv[])
 {
     (void)argc;
@@ -37,6 +41,23 @@ int main(int argc, char *argv[])
         g_GameErrorContext.Flush();
         return -1;
     }
+
+#ifdef REPLAY_VALIDATOR
+    if (argc != 2)
+    {
+        printf("Usage: %s <replay file/folder path>\n", argv[0]);
+        return 1;
+    }
+
+    if (!ReplayValidator::Init(argv[1]))
+    {
+        return 2;
+    }
+
+    g_Supervisor.cfg.windowed = 1;
+    g_Supervisor.cfg.musicMode = OFF;
+    g_Supervisor.cfg.playSounds = 0;
+#endif
 
     //    if (GameWindow::InitD3dInterface())
     //    {
@@ -152,7 +173,9 @@ stop:
         goto restart;
     }
 
+#ifndef REPLAY_VALIDATOR
     FileSystem::WriteDataToFile(TH_CONFIG_FILE, &g_Supervisor.cfg, sizeof(g_Supervisor.cfg));
+#endif
     //    SystemParametersInfo(SPI_SETSCREENSAVEACTIVE, g_GameWindow.screenSaveActive, NULL, SPIF_SENDCHANGE);
     //    SystemParametersInfo(SPI_SETLOWPOWERACTIVE, g_GameWindow.lowPowerActive, NULL, SPIF_SENDCHANGE);
     //    SystemParametersInfo(SPI_SETPOWEROFFACTIVE, g_GameWindow.powerOffActive, NULL, SPIF_SENDCHANGE);

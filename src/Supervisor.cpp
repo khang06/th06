@@ -19,6 +19,10 @@
 #include "inttypes.hpp"
 #include "utils.hpp"
 
+#ifdef REPLAY_VALIDATOR
+#include "ReplayValidator.hpp"
+#endif
+
 #include <SDL2/SDL_joystick.h>
 #include <SDL2/SDL_timer.h>
 #include <cstdio>
@@ -80,11 +84,16 @@ ChainCallbackResult Supervisor::OnUpdate(Supervisor *s)
         {
         case SUPERVISOR_STATE_INIT:
         REINIT_MAINMENU:
+#ifdef REPLAY_VALIDATOR
+            GameManager::CutChain();
+            return ReplayValidator::OnModeChange();
+#else
             s->curState = SUPERVISOR_STATE_MAINMENU;
             if (MainMenu::RegisterChain(0) != ZUN_SUCCESS)
             {
                 return CHAIN_CALLBACK_RESULT_EXIT_GAME_SUCCESS;
             }
+#endif
             break;
         case SUPERVISOR_STATE_MAINMENU:
             switch (s->curState)
@@ -167,11 +176,15 @@ ChainCallbackResult Supervisor::OnUpdate(Supervisor *s)
                 GameManager::CutChain();
                 s->curState = SUPERVISOR_STATE_INIT;
                 ReplayManager::SaveReplay(NULL, NULL);
+#ifdef REPLAY_VALIDATOR
+                return ReplayValidator::OnModeChange();
+#else
                 s->curState = SUPERVISOR_STATE_MAINMENU;
                 if (MainMenu::RegisterChain(1) != ZUN_SUCCESS)
                 {
                     return CHAIN_CALLBACK_RESULT_EXIT_GAME_SUCCESS;
                 }
+#endif
                 break;
 
             case 10:

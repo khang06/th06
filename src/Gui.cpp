@@ -17,6 +17,10 @@
 #include "ZunColor.hpp"
 #include "utils.hpp"
 
+#ifdef REPLAY_VALIDATOR
+#include "ReplayValidator.hpp"
+#endif
+
 Gui g_Gui;
 ChainElem g_GuiCalcChain;
 ChainElem g_GuiDrawChain;
@@ -654,6 +658,13 @@ ZunResult GuiImpl::RunMsg()
             g_Supervisor.FadeOutMusic(4.0);
             break;
         case MSG_OPCODE_STAGEEND:
+#ifdef REPLAY_VALIDATOR
+            if (!ReplayValidator::VerifyStageEndState())
+            {
+                exit(1);
+            }
+#endif
+
             g_GameManager.guiScore = g_GameManager.score;
             if (g_GameManager.isInPracticeMode)
             {

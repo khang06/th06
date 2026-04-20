@@ -40,3 +40,7 @@ struct ReplayManager
     ChainElem *drawChain;
     ChainElem *calcChainDemoHighPrio;
 };
+
+#ifdef REPLAY_VALIDATOR
+extern ReplayManager *g_ReplayManager;
+#endif

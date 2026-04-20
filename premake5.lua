@@ -26,6 +26,11 @@ newoption {
    description = "Embeds resources using #embed rather than the premake script. Makes modifying and testing shaders less of a pain."
 }
 
+newoption {
+   trigger = "replay-validator",
+   description = "Builds a version that runs through the given replay(s) on the command line to check for desyncs."
+}
+
 project "th06"
   language "C++"
   cppdialect "C++20"
@@ -84,8 +89,6 @@ project "th06"
   filter "toolset:clang" buildoptions { "-Wall", "-Wextra", "-Wpedantic", "-Wno-gnu-anonymous-struct" }
   filter {}
 
-  kind "WindowedApp"
-
   if os.target() == "windows" then
     files { "src/midi/MidiWin32.cpp" }
     links { "winmm" }
@@ -111,6 +114,14 @@ project "th06"
     embedResource("src/graphics/ff.frag", "fragShaderBytes", embedFile)
 
     embedFile:close()
+  end
+
+  if _OPTIONS["replay-validator"] ~= nil then
+    kind "ConsoleApp"
+    defines { "REPLAY_VALIDATOR" }
+    files { "src/ReplayValidator.cpp" }
+  else
+    kind "WindowedApp"
   end
 
   filter "system:linux"
