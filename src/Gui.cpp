@@ -661,7 +661,7 @@ ZunResult GuiImpl::RunMsg()
 #ifdef REPLAY_VALIDATOR
             if (!ReplayValidator::VerifyStageEndState())
             {
-                exit(1);
+                //exit(1);
             }
 #endif
 

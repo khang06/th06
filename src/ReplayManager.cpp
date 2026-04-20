@@ -31,6 +31,9 @@ ZunResult ReplayManager::ValidateReplayData(ReplayHeader *data, i32 fileSize)
     /* "T6RP" magic bytes */
     if (*(i32 *)data->magic != *(i32 *)"T6RP")
     {
+#ifdef REPLAY_VALIDATOR
+        printf("Invalid magic!\n");
+#endif
         return ZUN_ERROR;
     }
 
@@ -54,11 +57,17 @@ ZunResult ReplayManager::ValidateReplayData(ReplayHeader *data, i32 fileSize)
 
     if (checksum != data->checksum)
     {
+#ifdef REPLAY_VALIDATOR
+        printf("Invalid checksum!\n");
+#endif
         return ZUN_ERROR;
     }
 
     if (data->version != GAME_VERSION)
     {
+#ifdef REPLAY_VALIDATOR
+        printf("Invalid version! 0x%X\n", data->version);
+#endif
         return ZUN_ERROR;
     }
 

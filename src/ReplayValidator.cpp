@@ -11,81 +11,191 @@
 #include <sys/stat.h>
 #include <vector>
 
+// TODO: Use a proper Win32 define...
+#ifdef WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
+#pragma comment(lib, "Ws2_32.lib")
+#endif
+
 #ifndef _S_ISTYPE
 #define _S_ISTYPE(mode, mask) (((mode) & _S_IFMT) == (mask))
 #define S_ISDIR(mode) _S_ISTYPE((mode), _S_IFDIR)
 #endif
 
+struct DesyncResult
+{
+    int stage;
+    int expectedScore;
+    int actualScore;
+};
+
+static bool g_TcpMode;
 static std::vector<std::string> g_ReplayQueue;
+static SOCKET g_TcpSocket = INVALID_SOCKET;
+static DesyncResult g_DesyncResult;
+static bool g_FirstRun = true;
 
 namespace ReplayValidator
 {
 
 bool Init(const char *path)
 {
-    struct stat pathStat;
-    if (stat(path, &pathStat))
+    if (!strncmp(path, "tcp:", 4))
     {
-        std::printf("Failed to open replay path!\n");
-        return false;
-    }
+        g_TcpMode = true;
 
-    if (S_ISDIR(pathStat.st_mode))
-    {
-        std::printf("Getting replays from directory...\n");
-
-        DIR *dir = opendir(path);
-        if (!dir)
+#ifdef WIN32_LEAN_AND_MEAN
+        WSADATA wsaData;
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData))
         {
-            std::printf("Failed to open replay directory!\n");
+            std::printf("Failed to init Winsock!\n");
+            return false;
+        }
+#endif
+
+        struct addrinfo hints = {
+            .ai_family = AF_UNSPEC,
+            .ai_socktype = SOCK_STREAM,
+            .ai_protocol = IPPROTO_TCP,
+        };
+        struct addrinfo *addrOut;
+        if (getaddrinfo("127.0.0.1", &path[4], &hints, &addrOut))
+        {
+            std::printf("Failed to resolve address for TCP!\n");
             return false;
         }
 
-        struct dirent *entry;
-        while ((entry = readdir(dir)))
+        g_TcpSocket = socket(addrOut->ai_family, addrOut->ai_socktype, addrOut->ai_protocol);
+        if (g_TcpSocket == INVALID_SOCKET)
         {
-            if (entry->d_name[0] == '.')
-            {
-                continue;
-            }
-
-            std::printf("Adding %s\n", entry->d_name);
-            g_ReplayQueue.emplace_back(std::string(path) + "/" + entry->d_name);
+            std::printf("Failed to create socket for TCP!\n");
+            freeaddrinfo(addrOut);
+            return false;
         }
 
-        closedir(dir);
+        if (connect(g_TcpSocket, addrOut->ai_addr, (int)addrOut->ai_addrlen) == SOCKET_ERROR)
+        {
+            std::printf("Failed to connect to TCP server!\n");
+            freeaddrinfo(addrOut);
+            return false;
+        }
     }
     else
     {
-        g_ReplayQueue.emplace_back(path);
+        g_TcpMode = false;
+
+        struct stat pathStat;
+        if (stat(path, &pathStat))
+        {
+            std::printf("Failed to open replay path!\n");
+            return false;
+        }
+
+        if (S_ISDIR(pathStat.st_mode))
+        {
+            std::printf("Getting replays from directory...\n");
+
+            DIR *dir = opendir(path);
+            if (!dir)
+            {
+                std::printf("Failed to open replay directory!\n");
+                return false;
+            }
+
+            struct dirent *entry;
+            while ((entry = readdir(dir)))
+            {
+                if (entry->d_name[0] == '.')
+                {
+                    continue;
+                }
+
+                std::printf("Adding %s\n", entry->d_name);
+                g_ReplayQueue.emplace_back(std::string(path) + "/" + entry->d_name);
+            }
+
+            closedir(dir);
+        }
+        else
+        {
+            g_ReplayQueue.emplace_back(path);
+        }
     }
 
     return true;
 }
 
+static bool GetNextReplay(std::string& ret)
+{
+    if (g_TcpMode)
+    {
+        if (!g_FirstRun)
+        {
+            if (send(g_TcpSocket, (const char *)&g_DesyncResult, sizeof(g_DesyncResult), 0) == SOCKET_ERROR)
+            {
+                std::printf("Failed to send result to TCP server!\n");
+                return false;
+            }
+        }
+        g_FirstRun = false;
+
+        char buf[256];
+        int bytesRead = recv(g_TcpSocket, buf, sizeof(buf) - 1, 0);
+        if (bytesRead <= 0)
+        {
+            std::printf("Failed to read from TCP socket!\n");
+            return false;
+        }
+        buf[bytesRead] = '\0';
+        ret = std::string(buf);
+        return true;
+    }
+    else
+    {
+        if (g_ReplayQueue.empty())
+        {
+            return false;
+        }
+
+        ret = std::move(g_ReplayQueue.back());
+        g_ReplayQueue.pop_back();
+        return true;
+    }
+}
+
 ChainCallbackResult OnModeChange()
 {
-    if (g_ReplayQueue.empty())
-    {
-        std::printf("Done with all replays!\n");
-        return CHAIN_CALLBACK_RESULT_EXIT_GAME_SUCCESS;
-    }
+    std::string nextReplay;
+    ReplayHeader *replayHeader;
 
-    std::string nextReplay = std::move(g_ReplayQueue.back());
-    g_ReplayQueue.pop_back();
-
-    ReplayHeader *replayHeader = (ReplayHeader *)FileSystem::OpenPath(nextReplay.c_str(), 1);
-    if (!replayHeader)
+    while (true)
     {
-        std::printf("Failed to parse replay %s!\n", nextReplay.c_str());
-        return CHAIN_CALLBACK_RESULT_EXIT_GAME_SUCCESS;
-    }
+        if (!GetNextReplay(nextReplay))
+        {
+            std::printf("Done with all replays!\n");
+            return CHAIN_CALLBACK_RESULT_EXIT_GAME_SUCCESS;
+        }
 
-    if (ReplayManager::ValidateReplayData(replayHeader, g_LastFileSize) != ZUN_SUCCESS)
-    {
-        std::printf("Replay %s is invalid!\n", nextReplay.c_str());
-        return CHAIN_CALLBACK_RESULT_EXIT_GAME_SUCCESS;
+        replayHeader = (ReplayHeader *)FileSystem::OpenPath(nextReplay.c_str(), 1);
+        if (!replayHeader)
+        {
+            std::printf("Failed to open replay %s!\n", nextReplay.c_str());
+            g_DesyncResult.stage = -1;
+            continue;
+        }
+
+        if (ReplayManager::ValidateReplayData(replayHeader, g_LastFileSize) != ZUN_SUCCESS)
+        {
+            std::printf("Replay %s is invalid!\n", nextReplay.c_str());
+            g_DesyncResult.stage = -1;
+            continue;
+        }
+
+        break;
     }
+    g_DesyncResult.stage = 0;
 
     StageReplayData *stageReplayData[7] = {};
     for (int cur = 0; cur < ARRAY_SIZE_SIGNED(stageReplayData); cur++)
@@ -137,6 +247,12 @@ bool VerifyStageEndState()
     {
         std::printf("DESYNC ON STAGE %d! Expected %u, got %i\n", g_GameManager.currentStage, stageReplayData->score,
                     g_GameManager.score);
+        if (g_DesyncResult.stage <= 0)
+        {
+            g_DesyncResult.stage = g_GameManager.currentStage;
+            g_DesyncResult.expectedScore = stageReplayData->score;
+            g_DesyncResult.actualScore = g_GameManager.score;
+        }
         return false;
     }
     return true;
