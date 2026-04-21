@@ -14,11 +14,19 @@
 //   At some point there should be a method to change this without recompiling but for now
 //   this'll do
 #ifndef GAME_WINDOW_WIDTH_REAL
+#ifdef __GCW0__
+#define GAME_WINDOW_WIDTH_REAL (320)
+#else
 #define GAME_WINDOW_WIDTH_REAL (GAME_WINDOW_WIDTH)
+#endif
 #endif
 
 #ifndef GAME_WINDOW_HEIGHT_REAL
+#ifdef __GCW0__
+#define GAME_WINDOW_HEIGHT_REAL (240)
+#else
 #define GAME_WINDOW_HEIGHT_REAL (GAME_WINDOW_HEIGHT)
+#endif
 #endif
 
 #define VIEWPORT_WIDTH GAME_WINDOW_WIDTH_REAL

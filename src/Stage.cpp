@@ -241,6 +241,7 @@ ChainCallbackResult Stage::OnDrawHighPrio(Stage *stage)
 
     g_AnmManager->SetFogRange(stage->skyFog.nearPlane, stage->skyFog.farPlane);
 
+#ifndef __GCW0__
     if (stage->spellcardState <= RUNNING)
     {
         if (!g_Gui.IsStageFinished())
@@ -249,6 +250,7 @@ ChainCallbackResult Stage::OnDrawHighPrio(Stage *stage)
             stage->RenderObjects(1);
         }
     }
+#endif
     return CHAIN_CALLBACK_RESULT_CONTINUE;
 }
 
@@ -261,8 +263,10 @@ ChainCallbackResult Stage::OnDrawLowPrio(Stage *stage)
     {
         if (!g_Gui.IsStageFinished())
         {
+#ifndef __GCW0__
             stage->RenderObjects(2);
             stage->RenderObjects(3);
+#endif
             if (stage->spellcardState == RUNNING)
             {
                 gameRegion.left = GAME_REGION_LEFT;

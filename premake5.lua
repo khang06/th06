@@ -114,11 +114,14 @@ project "th06"
   end
 
   filter "system:linux"
+    defines { "__GCW0__" }
+    buildoptions { "-march=mips32r2", "-mtune=mips32r2", "-mhard-float", "-mno-mips16", "-flto" }
+    linkoptions { "-flto" }
     local sdl2_cflags = os.outputof("sdl2-config --cflags") or ""
     local sdl2_libs   = os.outputof("sdl2-config --libs")   or ""
     if #sdl2_cflags > 0 then buildoptions { sdl2_cflags } end
     if #sdl2_libs   > 0 then linkoptions  { sdl2_libs }   end
-    links { "SDL2_image", "SDL2_ttf", "m" }
+    links { "SDL2_image", "SDL2_ttf", "iconv", "m" }
   filter {}
 
   filter "system:windows"

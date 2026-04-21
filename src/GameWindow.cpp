@@ -27,8 +27,14 @@ static struct
     bool isEsContext;
     void (*setContextFlags)();
     GfxInterface *(*init)();
-} s_RenderBackends[] = {{"GL(ES) 2.0 / WebGL", true, WebGL::SetContextFlags, WebGL::Create},
-                        {"Fixed function GL(ES)", false, FixedFunctionGL::SetContextFlags, FixedFunctionGL::Init}};
+} s_RenderBackends[] = {
+    // The RG350 "supports" this, but ends up with a black screen for reasons I don't know
+    // Fixed-function is good enough anyway
+#ifndef __GCW0__
+    {"GL(ES) 2.0 / WebGL", true, WebGL::SetContextFlags, WebGL::Create},
+#endif
+    {"Fixed function GL(ES)", false, FixedFunctionGL::SetContextFlags, FixedFunctionGL::Init}
+};
 
 RenderResult GameWindow::Render()
 {
@@ -46,6 +52,15 @@ RenderResult GameWindow::Render()
     if (this->curFrame == 0)
     {
     RUN_CHAINS:
+        g_Supervisor.viewport.x = 0;
+        g_Supervisor.viewport.y = 0;
+        g_Supervisor.viewport.width = GAME_WINDOW_WIDTH;
+        g_Supervisor.viewport.height = GAME_WINDOW_HEIGHT;
+        g_AnmManager->SetProjectionMode(PROJECTION_MODE_PERSPECTIVE);
+        g_Supervisor.viewport.Set();
+        res = g_Chain.RunCalcChain();
+        g_SoundPlayer.PlaySounds();
+
         if (g_Supervisor.cfg.frameskipConfig <= this->curFrame)
         {
             if (g_Supervisor.RedrawWholeFrame())
@@ -68,15 +83,6 @@ RenderResult GameWindow::Render()
             g_Chain.RunDrawChain();
             g_AnmManager->SetCurrentTexture(0);
         }
-
-        g_Supervisor.viewport.x = 0;
-        g_Supervisor.viewport.y = 0;
-        g_Supervisor.viewport.width = GAME_WINDOW_WIDTH;
-        g_Supervisor.viewport.height = GAME_WINDOW_HEIGHT;
-        g_AnmManager->SetProjectionMode(PROJECTION_MODE_PERSPECTIVE);
-        g_Supervisor.viewport.Set();
-        res = g_Chain.RunCalcChain();
-        g_SoundPlayer.PlaySounds();
 
         if (res == 0)
         {
@@ -377,7 +383,14 @@ i32 GameWindow::InitD3dRendering(void)
     //    present_params.AutoDepthStencilFormat = D3DFMT_D16;
     //    present_params.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 
+#ifdef __GCW0__
+    SDL_GL_SetSwapInterval(0);
+    g_Supervisor.hasD3dHardwareVertexProcessing = 1;
+#else
     SDL_GL_SetSwapInterval(1);
+#endif
+
+
     g_Supervisor.vsyncEnabled = 1;
 
     g_Supervisor.lockableBackbuffer = 1;

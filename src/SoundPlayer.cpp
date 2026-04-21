@@ -494,6 +494,117 @@ void SoundPlayer::PlaySoundByIdx(SoundIdx idx)
 
 void SoundPlayer::MixAudio(u32 samples)
 {
+#ifdef __GCW0__
+    // We need as much CPU time as we can get
+    i16 finalBuffer[samples];
+    i32 mixBuffer[samples];
+    
+    memset(mixBuffer, 0, sizeof(mixBuffer));
+
+    soundBufMutex.lock();
+
+    // Mix music first to do a direct copy
+    if (backgroundMusic.srcWav.fileStream != NULL)
+    {
+        u32 samplesMixed = 0;
+        i16 fadeoutMult;
+
+        // Fadeouts are done in fixed point
+        if (backgroundMusic.fadeoutLen != 0)
+        {
+            f32 fadeoutInterp = mapRange(backgroundMusic.fadeoutProgress, 0, backgroundMusic.fadeoutLen, 0, 5);
+            fadeoutMult = (1.0f / ZUN_POWF(10.0f, fadeoutInterp / 2.0f)) * 256.0f;
+        }
+        else
+        {
+            fadeoutMult = 256;
+        }
+
+        while (samplesMixed < samples / 2)
+        {
+            const u32 samplesToMix =
+                std::min((samples / 2) - samplesMixed, backgroundMusic.loopEnd - backgroundMusic.pos);
+
+            /*
+            for (u32 j = 0; j < samplesToMix; j++)
+            {
+                mixBuffer[samplesMixed + j * 2] += ((i16)SDL_ReadLE16(backgroundMusic.srcWav.fileStream)) * fadeoutMult;
+                mixBuffer[samplesMixed + j * 2 + 1] +=
+                    ((i16)SDL_ReadLE16(backgroundMusic.srcWav.fileStream)) * fadeoutMult;
+            }
+            */
+            
+            i16 tempBuf[samplesToMix * 2];
+            SDL_RWread(backgroundMusic.srcWav.fileStream, tempBuf, 2, samplesToMix * 2);
+            
+            for (u32 j = 0; j < samplesToMix * 2; j++)
+            {
+                mixBuffer[samplesMixed * 2 + j] = tempBuf[j];
+            }
+            
+            if (fadeoutMult != 256)
+            {
+                for (u32 j = 0; j < samplesToMix * 2; j++)
+                {
+                    mixBuffer[samplesMixed * 2 + j] = (mixBuffer[samplesMixed * 2 + j] * fadeoutMult) >> 8;
+                }
+            }
+
+            backgroundMusic.pos += samplesToMix;
+            samplesMixed += samplesToMix;
+
+            if (backgroundMusic.pos == backgroundMusic.loopEnd)
+            {
+                if (this->isLooping)
+                {
+                    backgroundMusic.pos = backgroundMusic.loopStart;
+                    SDL_RWseek(backgroundMusic.srcWav.fileStream,
+                               backgroundMusic.srcWav.dataStartOffset + backgroundMusic.pos * 4, SEEK_SET);
+                }
+                else
+                {
+                    SDL_RWclose(backgroundMusic.srcWav.fileStream);
+                    backgroundMusic.srcWav.fileStream = NULL;
+
+                    break;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < ARRAY_SIZE_SIGNED(soundBuffers); i++)
+    {
+        if (!soundBuffers[i].isPlaying)
+        {
+            continue;
+        }
+
+        // Sounds are all mono, so we need to duplicate each sample for stereo output
+        const u32 samplesToMix = std::min(samples / 2, soundBuffers[i].len - soundBuffers[i].pos);
+
+        for (u32 j = 0; j < samplesToMix; j++)
+        {
+            mixBuffer[j * 2] += soundBuffers[i].samples[soundBuffers[i].pos + j];
+            mixBuffer[j * 2 + 1] += soundBuffers[i].samples[soundBuffers[i].pos + j];
+        }
+
+        soundBuffers[i].pos += samplesToMix;
+
+        if (soundBuffers[i].pos == soundBuffers[i].len)
+        {
+            soundBuffers[i].isPlaying = false;
+        }
+    }
+
+    soundBufMutex.unlock();
+    for (u32 i = 0; i < samples; i++)
+    {
+        // Fuck it just hardcode 8 channels
+        finalBuffer[i] = mixBuffer[i] >> 3;
+    }
+
+    SDL_QueueAudio(audioDev, finalBuffer, samples * 2);
+#else
     std::vector<i16> finalBuffer(samples);
     std::vector<i32> mixBuffer(samples);
     u8 playingChannels = 0;
@@ -608,6 +719,7 @@ void SoundPlayer::MixAudio(u32 samples)
     }
 
     SDL_QueueAudio(audioDev, finalBuffer.data(), samples * 2);
+#endif
 }
 
 // EoSD originally just used this function to manage the streaming of the music WAV file.
